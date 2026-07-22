@@ -3,13 +3,33 @@ import { db } from "@/server/db";
 import { stripe_customer_id } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+let stripeInstance: Stripe | null = null;
+
+/**
+ * Stripe istemcisini güvenli şekilde (Lazy Load) döndürür.
+ * Build sırasında patlamaz, Cloudflare Edge Runtime ile tam uyumludur.
+ */
+export const getStripe = (): Stripe => {
+  if (!stripeInstance) {
+    const apiKey = process.env.STRIPE_SECRET_KEY;
+    if (!apiKey) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is missing.');
+    }
+    
+    stripeInstance = new Stripe(apiKey, {
+      httpClient: Stripe.createFetchHttpClient(), // Cloudflare Pages Edge Runtime için şarttır
+    });
+  }
+  return stripeInstance;
+};
 
 /**
  * Ensures a valid Stripe customer exists for the given user.
  * If the stored customer ID doesn't exist in Stripe, creates a new customer and updates the DB.
  */
 export async function ensureStripeCustomer(userId: string, userEmail?: string, userName?: string): Promise<string> {
+  const stripe = getStripe(); // İstek anında güvenli bir şekilde çağırıyoruz
+
   // Check if customer exists in our database
   const existingCustomer = await db.query.stripe_customer_id.findFirst({
     where: eq(stripe_customer_id.userId, userId)
@@ -63,7 +83,14 @@ export async function ensureStripeCustomer(userId: string, userEmail?: string, u
   }
 }
 
-export async function createRecoveryCoupon(stripe: Stripe, userId: string): Promise<string> {
+export async function createRecoveryCoupon(stripeParam?: Stripe, userId?: string): Promise<string> {
+  // stripeParam verilmemişse dahili olarak getStripe() kullanır
+  const stripe = stripeParam || getStripe();
+  
+  if (!userId) {
+    throw new Error("userId is required for createRecoveryCoupon");
+  }
+
   // Generate a unique code with user ID and timestamp
   const uniqueId = `${userId.substring(0, 6)}-${Date.now().toString(36)}`;
   const id = `COMEBACK-${uniqueId}`.toUpperCase();
@@ -84,6 +111,7 @@ export async function createRecoveryCoupon(stripe: Stripe, userId: string): Prom
 
   const promotionCode = await stripe.promotionCodes.create({
     coupon: coupon.id,
-  })
+  });
+  
   return promotionCode.code;
-} 
+}
