@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { auth } from "@/server/auth";
-import { ensureStripeCustomer, stripe } from "@/lib/stripe";
+import { ensureStripeCustomer, getStripe } from "@/lib/stripe"; // stripe yerine getStripe import ettik
 
-export const runtime = "edge"
+export const runtime = "edge";
 
 export async function POST(request: Request) {
     const session = await auth();
@@ -19,6 +19,9 @@ export async function POST(request: Request) {
     }
 
     try {
+        // Stripe istemcisini istek anında (lazy) çağırıyoruz
+        const stripe = getStripe();
+
         // Ensure a valid Stripe customer exists
         const stripeCustomerId = await ensureStripeCustomer(
             user.id,
