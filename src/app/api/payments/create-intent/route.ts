@@ -3,7 +3,7 @@ import { auth } from "@/server/auth";
 import { db } from "@/server/db";
 import { user_credits } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
-import { ensureStripeCustomer, stripe } from "@/lib/stripe";
+import { ensureStripeCustomer, getStripe } from "@/lib/stripe"; // stripe yerine getStripe() import ettik
 import Stripe from 'stripe';
 
 export const runtime = "edge";
@@ -23,6 +23,9 @@ export async function POST(request: Request) {
     }
 
     try {
+        // Stripe istemcisini istek anında güvenli bir şekilde ilklendiriyoruz
+        const stripe = getStripe();
+
         // Ensure a valid Stripe customer exists
         const stripeCustomerId = await ensureStripeCustomer(
             user.id,
@@ -92,4 +95,4 @@ export async function POST(request: Request) {
         }
         return NextResponse.json({ error: "Failed to process payment" }, { status: 500 });
     }
-} 
+}
