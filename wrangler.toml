@@ -1,6 +1,6 @@
-name = "demostests11"
-compatibility_date = "2026-07-22"
-pages_build_output_dir = ".next"
-
-[build]
-command = "npx @cloudflare/next-on-pages"
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "demostests11",
+  "compatibility_date": "2026-07-22",
+  "pages_build_output_dir": ".vercel/output/static"
+}
