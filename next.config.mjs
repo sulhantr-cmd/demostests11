@@ -1,12 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Build sırasında ESLint ve TypeScript kilitlenmelerini engeller
+  // 1. Static Generation sırasında Edge Runtime çökmelerini engeller
+  unstable_allowDynamic: [
+    '/node_modules/bun-types/**',
+    '/node_modules/next-auth/**',
+  ],
+  
+  // 2. Build sırasında ESLint ve TypeScript kilitlenmelerini engeller
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: true,
   },
+
   images: {
     remotePatterns: [
       {
@@ -42,8 +49,7 @@ const nextConfig = {
   skipTrailingSlashRedirect: true,
 };
 
-// setupDevPlatform sadece yerel geliştirme (local dev) için geçerlidir.
-// Cloudflare build/production aşamasında çalışmasını engellemek için async IIFE içine alıyoruz:
+// setupDevPlatform sadece yerel geliştirme (local dev) için çalıştırılır
 if (process.env.NODE_ENV === 'development') {
   (async () => {
     const { setupDevPlatform } = await import('@cloudflare/next-on-pages/next-dev');
